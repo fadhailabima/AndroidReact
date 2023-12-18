@@ -2,87 +2,95 @@ import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import React, { Component } from "react";
 import { Text, StyleSheet, View, TouchableOpacity, Alert } from "react-native";
-import firebase from "../../config/FIREBASE";
-import { CardMahasiswa } from "../../components";
+import COLORS from "../../../constants/colors";
+// import { withNavigation } from "@react-navigation/compat";
+import { CardTransaksi } from "../../components";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getDaftarTransaksi, logout } from "../../../axios";
 
 export default class Home extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      mahasiswas: {},
-      mahasiswasKey: [],
+      transactions: [],
+      error: "", // Menambahkan state untuk menyimpan pesan error
     };
   }
 
+  handleLogout = async () => {
+    try {
+      const token = await AsyncStorage.getItem("userToken");
+      const logoutResponse = await logout(token); // Menggunakan fungsi logout dari axios
+
+      if (logoutResponse) {
+        await AsyncStorage.removeItem("userToken");
+        this.props.navigation.navigate("Login");
+      } else {
+        // Tangani jika proses logout gagal
+        // Tampilkan pesan atau lakukan aksi yang sesuai dengan kebutuhan aplikasi Anda
+      }
+    } catch (error) {
+      console.error("Error during logout: ", error);
+    }
+  };
+
   componentDidMount() {
-    this.ambilData();
+    this.getData();
   }
 
-  ambilData = () => {
-    firebase
-      .database()
-      .ref("Mahasiswa")
-      .once("value", (querySnapShot) => {
-        let data = querySnapShot.val() ? querySnapShot.val() : {};
-        let MahasiswaItem = { ...data };
+  async getData() {
+    try {
+      const token = await AsyncStorage.getItem("userToken");
+      const response = await getDaftarTransaksi(token);
 
-        this.setState({
-          mahasiswas: MahasiswaItem,
-          mahasiswasKey: Object.keys(MahasiswaItem),
-        });
-      });
-  };
-
-  removeData = (id) => {
-    Alert.alert(
-      "Info",
-      "Anda yakin akan menghapus data ?",
-      [
-        {
-          text: "Cancel",
-          onPress: () => console.log("Cancel Pressed"),
-          style: "cancel",
-        },
-        {
-          text: "OK",
-          onPress: () => {
-            firebase
-              .database()
-              .ref("Mahasiswa/" + id)
-              .remove();
-            this.ambilData();
-            Alert.alert("Hapus", "Sukses menghapus data!");
-          },
-        },
-      ],
-      { cancelable: false }
-    );
-  };
+      if (response.error) {
+        // Jika ada pesan error dari respons
+        this.setState({ error: response.error });
+      } else {
+        // Jika respons sukses, update data transaksi
+        this.setState({ transactions: response.daftar_transaksi });
+      }
+    } catch (error) {
+      // Tangani kesalahan koneksi atau lainnya
+      this.setState({ error: "Terjadi kesalahan dalam mengambil data." });
+      console.error("Error getting data: ", error);
+    }
+  }
 
   render() {
-    const { mahasiswas, mahasiswasKey } = this.state;
+    const { transactions, error } = this.state;
     return (
       <View style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.title}>Daftar Mahasiswa</Text>
+          <Text style={styles.title}>Daftar Transaksi</Text>
+          <TouchableOpacity
+            style={styles.btnLogout}
+            onPress={this.handleLogout}
+          >
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
           <View style={styles.garis} />
         </View>
-        <View style={styles.listMahasiswa}>
-          {mahasiswasKey.length > 0 ? (
-            mahasiswasKey.map((key) => (
-              <CardMahasiswa
-                key={key}
-                MahasiswaItem={mahasiswas[key]}
-                id={key}
-                {...this.props}
-                removeData={this.removeData}
-              />
-            ))
-          ) : (
-            <Text>Daftar Kosong</Text>
-          )}
-        </View>
+        {error ? ( // Tampilkan pesan error jika ada
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : (
+          <View style={styles.listTransaksi}>
+            {transactions.length > 0 ? (
+              transactions.map((transaction, index) => (
+                <CardTransaksi
+                  key={index}
+                  transaction={transaction}
+                  navigation={this.props.navigation}
+                />
+              ))
+            ) : (
+              <Text>Tidak ada Transaksi</Text>
+            )}
+          </View>
+        )}
         <View style={styles.wrapperButton}>
           <TouchableOpacity
             style={styles.btnTambah}
@@ -94,6 +102,8 @@ export default class Home extends Component {
       </View>
     );
   }
+
+  // export default withNavigation(Home);
 }
 
 const styles = StyleSheet.create({
@@ -110,7 +120,7 @@ const styles = StyleSheet.create({
   },
   btnTambah: {
     padding: 20,
-    backgroundColor: "skyblue",
+    backgroundColor: COLORS.primary,
     borderRadius: 30,
     shadowColor: "#000",
     shadowOffset: {
@@ -119,7 +129,6 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-
     elevation: 5,
   },
   header: {
@@ -134,8 +143,35 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginTop: 10,
   },
-  listMahasiswa: {
+  listTransaksi: {
     paddingHorizontal: 30,
     marginTop: 20,
+  },
+  errorContainer: {
+    paddingHorizontal: 30,
+    marginTop: 20,
+    alignItems: "center",
+  },
+  errorText: {
+    fontSize: 16,
+    color: "red",
+  },
+  btnLogout: {
+    position: "absolute",
+    right: 30,
+    paddingTop: 30,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5, // Sesuaikan jarak dari atas jika diperlukan
+  },
+  logoutText: {
+    fontSize: 16,
+    color: COLORS.primary,
+    fontWeight: "bold",
   },
 });

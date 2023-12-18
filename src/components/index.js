@@ -1,4 +1,4 @@
 import InputData from './InputData';
-import CardMahasiswa from './CardMahasiswa';
+import CardTransaksi from './CardTransaksi';
 
-export {InputData, CardMahasiswa}
+export {InputData, CardTransaksi}
