@@ -30,7 +30,7 @@ const Router = () => {
       <Stack.Screen
         name="Detail"
         component={Detail}
-        options={{ title: "Detail Mahasiswa" }}
+        options={{ title: "Detail Transaksi" }}
       />
       <Stack.Screen
         name="Edit"

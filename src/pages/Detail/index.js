@@ -1,12 +1,11 @@
 import React, { Component } from "react";
-import { Text, StyleSheet, View, TouchableOpacity } from "react-native";
+import { Text, StyleSheet, View, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   showDetailTransaksi,
   updateStatusTransaksi,
   updateStatusDetailTransaksi,
-  getStatusOptions,
-} from "../../../axios"; // Pastikan Anda memiliki fungsi getStatusOptions dari axios
+} from "../../../axios";
 
 import SelectDropdown from "react-native-select-dropdown";
 
@@ -18,15 +17,17 @@ export default class Detail extends Component {
       transaksi: {},
       detailTransaksi: [],
       token: "",
-      selectedStatus: "", // State untuk menyimpan status yang dipilih
-      selectedDetailId: "", // State untuk menyimpan ID detail transaksi yang dipilih
-      statusOptions: [], // State untuk menyimpan opsi status dari server
+      selectedStatus: "",
+      selectedDetailId: "",
+      statusOptions: {
+        transaksiStatusOptions: [],
+        detailTransaksiStatusOptions: [],
+      },
     };
   }
 
   async componentDidMount() {
     await this.loadToken();
-    await this.getStatusOptions();
     this.loadDetailTransaksi();
   }
 
@@ -41,30 +42,6 @@ export default class Detail extends Component {
     }
   }
 
-  async getStatusOptions() {
-    try {
-      const { token } = this.state;
-      const idtransaksi = this.props.route.params.id;
-
-      const options = await getStatusOptions(idtransaksi, token);
-
-      if (
-        options &&
-        options.transaksi_status &&
-        options.detail_transaksi_status
-      ) {
-        this.setState({
-          statusOptions: {
-            transaksi: options.transaksi_status,
-            detailTransaksi: options.detail_transaksi_status,
-          },
-        });
-      }
-    } catch (error) {
-      console.error("Error getting status options: ", error);
-    }
-  }
-
   async loadDetailTransaksi() {
     try {
       const { token } = this.state;
@@ -76,6 +53,10 @@ export default class Detail extends Component {
         this.setState({
           transaksi: response.transaksi,
           detailTransaksi: response.transaksi.detail_transaksi,
+          statusOptions: {
+            transaksiStatusOptions: response.transaksiStatusOptions,
+            detailTransaksiStatusOptions: response.detailTransaksiStatusOptions,
+          },
         });
       }
     } catch (error) {
@@ -83,81 +64,82 @@ export default class Detail extends Component {
     }
   }
 
-  async changeStatusTransaksi() {
+  async changeStatusTransaksi(selectedStatus) {
     try {
-      const { token, selectedStatus } = this.state;
+      const { token } = this.state;
       const idtransaksi = this.props.route.params.id;
 
       await updateStatusTransaksi(token, idtransaksi, selectedStatus);
-      // Lakukan sesuatu setelah status transaksi berhasil diubah
+      Alert.alert("Success", "Status updated successfully");
+
+      this.setState({ selectedStatus });
     } catch (error) {
       console.error("Error changing status transaksi: ", error);
     }
   }
 
-  async changeStatusDetailTransaksi() {
+  async changeStatusDetailTransaksi(selectedStatus, selectedDetailId) {
     try {
-      const { token, selectedStatus, selectedDetailId } = this.state;
+      const { token } = this.state;
 
       await updateStatusDetailTransaksi(
         token,
         selectedDetailId,
         selectedStatus
       );
-      // Lakukan sesuatu setelah status detail transaksi berhasil diubah
+
+      Alert.alert("Success", "Status updated successfully");
+
+      console.log("Request sent successfully");
     } catch (error) {
       console.error("Error changing status detail transaksi: ", error);
     }
   }
 
   render() {
-    const { detailTransaksi, selectedStatus, statusOptions, transaksi } =
-      this.state;
+    const { detailTransaksi, statusOptions, transaksi } = this.state;
     return (
       <View style={styles.pages}>
-        {/* Dropdown untuk memilih status transaksi */}
-        <SelectDropdown
-          data={statusOptions.transaksi}
-          onSelect={(selectedItem, index) =>
-            this.setState({ selectedStatus: selectedItem })
-          }
-          buttonTextAfterSelection={(selectedItem, index) => selectedItem}
-          rowTextForSelection={(item, index) => item}
-        />
-        {/* Tombol untuk mengubah status transaksi */}
-        <TouchableOpacity onPress={() => this.changeStatusTransaksi()}>
-          <Text>Ubah Status Transaksi</Text>
-        </TouchableOpacity>
-        {/* Menampilkan detail transaksi */}
         {detailTransaksi &&
           detailTransaksi.map((detail, index) => (
-            <View key={index}>
+            <View key={index} style={styles.menuContainer}>
               <Text>Nama Menu: {detail.namamenu}</Text>
               <Text>Harga: {detail.harga}</Text>
               <Text>Jumlah: {detail.jumlah}</Text>
-              {/* Mengakses properti total dan metode_pembayaran dari objek transaksi */}
-              <Text>Metode Pembayaran: {transaksi.metode_pembayaran}</Text>
-              <Text>Total: {transaksi.total}</Text>
-              {/* Dropdown untuk memilih status pesanan */}
+              <Text style={styles.status}>Status </Text>
               <SelectDropdown
-                data={statusOptions.detailTransaksi}
-                onSelect={(selectedItem, index) =>
-                  this.setState({
-                    selectedStatus: selectedItem,
-                    selectedDetailId: detail.id,
-                  })
+                data={statusOptions.detailTransaksiStatusOptions}
+                defaultButtonText={detail.status}
+                onSelect={(selectedItem) =>
+                  this.changeStatusDetailTransaksi(selectedItem, detail.id)
                 }
-                buttonTextAfterSelection={(selectedItem, index) => selectedItem}
-                rowTextForSelection={(item, index) => item}
+                buttonTextAfterSelection={(selectedItem) => selectedItem}
+                rowTextForSelection={(item) => item}
+                style={styles.selectDropdown}
               />
-              {/* Tombol untuk mengubah status pesanan */}
-              <TouchableOpacity
-                onPress={() => this.changeStatusDetailTransaksi()}
-              >
-                <Text>Ubah Status Pesanan</Text>
-              </TouchableOpacity>
+              {index !== detailTransaksi.length - 1 && (
+                <View style={styles.divider} />
+              )}
             </View>
           ))}
+
+        {transaksi && (
+          <View style={styles.totalContainer}>
+            <Text>Metode Pembayaran: {transaksi.metode_pembayaran}</Text>
+            <Text>Total: {transaksi.total}</Text>
+            <Text style={styles.status}>Status Transaksi </Text>
+            <SelectDropdown
+              data={statusOptions.transaksiStatusOptions}
+              defaultButtonText={transaksi.status}
+              onSelect={(selectedItem) =>
+                this.changeStatusTransaksi(selectedItem)
+              }
+              buttonTextAfterSelection={(selectedItem) => selectedItem}
+              rowTextForSelection={(item) => item}
+              style={styles.selectDropdown}
+            />
+          </View>
+        )}
       </View>
     );
   }
@@ -177,4 +159,32 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
+  menuContainer: {
+    marginBottom: 0,
+    paddingBottom: 10,
+  },
+  divider: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+    marginTop: 10,
+  },
+  totalContainer: {
+    marginTop: 0,
+    borderTopWidth: 1,
+    borderTopColor: "#ccc",
+    paddingTop: 10,
+  },
+  statusContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  selectDropdown: {
+    width: 10, // Atur lebar minimum yang diinginkan di sini
+  },
+  status : {
+    marginBottom : 10,
+  }
 });
+
+

@@ -40,22 +40,6 @@ export const getShift = async (token) => {
   }
 };
 
-export const getDaftarTransaksi = async (token) => {
-  try {
-    const response = await axios.get(
-      "http://10.0.2.2:8000/api/daftarTransaksi",
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    return response.data;
-  } catch (error) {
-    throw error;
-  };  
-};
-
 export const logout = async (token) => {
   try {
     const response = await axios.post(
@@ -76,6 +60,22 @@ export const logout = async (token) => {
   } catch (error) {
     throw new Error(`Terjadi kesalahan dalam proses logout: ${error.message}`);
   }
+};
+
+export const getDaftarTransaksi = async (token) => {
+  try {
+    const response = await axios.get(
+      "http://10.0.2.2:8000/api/daftarTransaksi",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  };  
 };
 
 export const showDetailTransaksi = async (token, idtransaksi) => {
@@ -116,22 +116,6 @@ export const updateStatusDetailTransaksi = async (token, id, status) => {
     const response = await axios.put(
       `http://10.0.2.2:8000/api/detailtransaksi/${id}/updatestatus`, // Sesuaikan dengan endpoint yang benar
       { status },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-};
-
-export const getStatusOptions = async (idtransaksi, token) => {
-  try {
-    const response = await axios.get(
-      `http://localhost:8000/api/transaksi/${idtransaksi}/status`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
