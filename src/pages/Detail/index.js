@@ -8,6 +8,7 @@ import {
 } from "../../../axios";
 
 import SelectDropdown from "react-native-select-dropdown";
+import { Colors } from "react-native/Libraries/NewAppScreen";
 
 export default class Detail extends Component {
   constructor(props) {

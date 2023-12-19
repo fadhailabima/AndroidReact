@@ -16,7 +16,7 @@ export const login = async (username, password) => {
     ) {
       return response.data.data.user.token;
     } else {
-      throw new Error("Token tidak ditemukan dalam respons server");
+      throw new Error("Kombinasi username dan password tidak valid.");
     }
   } catch (error) {
     throw new Error(`Terjadi kesalahan dalam proses login: ${error.message}`);
